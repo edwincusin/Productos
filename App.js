@@ -1,10 +1,10 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, FlatList, TextInput, Button, ScrollView, Alert } from 'react-native';
+import { StyleSheet, Text, View, FlatList, TextInput, Button, ScrollView, Alert, TouchableOpacity, Modal } from 'react-native';
 import { useState } from 'react';
 
 
 let esNuevo = true;
-let indiceSeleccionado = -1;
+
 
 export default function App() {
 
@@ -30,48 +30,61 @@ export default function App() {
   const [txtPrecioVenta, setPrecioVenta] = useState("");
   //const [numElementos,setNumElementos]=useState(productos.length)//para mostrar en la tabla lista
   const [productos, setProductos] = useState(productosLista)
+  const [indiceSeleccionado, setIndiceSeleccionado] = useState(-1);
 
   //MI COMPONENTE PERSONALIZADO PARA LA LISTA
-  let ItemProducto = (props) => {
-    return (<View style={styles.item}>
-      <View style={styles.itemCodigo}><Text>{props.producto.id}</Text></View>
-      <View style={styles.itemContenido}>
-        <Text style={styles.textoPrincipal}>{props.producto.nombre}</Text>
-        <Text style={styles.textoSecundario}>{props.producto.categoria}</Text>
-      </View>
-      <View style={styles.itemPrecioVenta}><Text style={styles.itemTextoPrecioVenta}>{props.producto.precioVenta}</Text></View>
-      <View style={styles.itemBotones}>
-        <Button
-          title='E'
-          color='green'
-          onPress={() => {
-            setCodigo(props.producto.id.toString());//convertir a tostring
-            setNombre(props.producto.nombre);
-            setCategoria(props.producto.categoria);
-            setPrecioCompra(props.producto.precioCompra.toString());
-            setPrecioVenta(props.producto.precioVenta.toString());
-            indiceSeleccionado=props.indice;
-            esNuevo = false;
-          }}
-        />
-        <Button
-          title='X'
-          color='red'
-          onPress={() => {
-            eliminarItem(props.indice);
-          }}
-        />
-      </View>
-    </View>
+  let ItemProducto = ({ indice, producto }) => { //  (props) en lugar  colocamos directo las dos propiedades del objeto que es index y item
+    return (
+      <TouchableOpacity // esto hace que al dar clic en el item realice la funcion del boton modificar. 
+        onPress={() => {
+          setCodigo(producto.id.toString());//convertir a tostring
+          setNombre(producto.nombre);
+          setCategoria(producto.categoria);
+          setPrecioCompra(producto.precioCompra.toString());
+          setPrecioVenta(producto.precioVenta.toString());
+          setIndiceSeleccionado(indice);
+          esNuevo = false;
+        }}
+      >
+        <View style={styles.item}>
+          <View style={styles.itemCodigo}><Text>{producto.id}</Text></View>
+          <View style={styles.itemContenido}>
+            <Text style={styles.textoPrincipal}>{producto.nombre}</Text>
+            <Text style={styles.textoSecundario}>{producto.categoria}</Text>
+          </View>
+          <View style={styles.itemPrecioVenta}><Text style={styles.itemTextoPrecioVenta}>{producto.precioVenta}</Text></View>
+          <View style={styles.itemBotones}>
+            <Button
+              title='E'
+              color='green'
+              onPress={() => {
+                setCodigo(producto.id.toString());//convertir a tostring
+                setNombre(producto.nombre);
+                setCategoria(producto.categoria);
+                setPrecioCompra(producto.precioCompra.toString());
+                setPrecioVenta(producto.precioVenta.toString());
+                setIndiceSeleccionado(indice);
+                esNuevo = false;
+              }}
+            />
+            <Button
+              title='X'
+              color='red'
+              onPress={() => {
+                setIndiceSeleccionado(indice);
+                //eliminarItem(indiceSeleccionado); // se lo hara desde el modal
+                setModalVisible(true);
+              }}
+            />
+          </View>
+        </View>
+      </TouchableOpacity>
     )
   };
   //convertir int
-  let convertirINT = (txt) => {
-    return parseInt(txt)
-  };
-  let convertirFloat = (txt) => {
-    return parseFloat(txt)
-  }
+  let convertirINT = txt => parseInt(txt); // funciones simplificadas
+
+  let convertirFloat = txt => parseFloat(txt); // funciones simplificadas
 
   //funcion guardar
   let guardarProducto = () => {
@@ -96,14 +109,14 @@ export default function App() {
       } else {
         Alert.alert("Obligatorio", "Llenar todos los campos");
       }
-    }else{
-      let nuevaLista=[...productos];
-      nuevaLista[indiceSeleccionado].nombre=txtNombre;
-      nuevaLista[indiceSeleccionado].categoria=txtCategoria;
-      nuevaLista[indiceSeleccionado].precioCompra=txtPrecioCompra;
-      nuevaLista[indiceSeleccionado].precioVenta=txtPrecioVenta;
+    } else {
+      let nuevaLista = [...productos]; // creamos una lista nueva para guardar y volver a actualizar y asi se ejecute el render
+      nuevaLista[indiceSeleccionado].nombre = txtNombre;
+      nuevaLista[indiceSeleccionado].categoria = txtCategoria;
+      nuevaLista[indiceSeleccionado].precioCompra = txtPrecioCompra;
+      nuevaLista[indiceSeleccionado].precioVenta = txtPrecioVenta;
       setProductos(nuevaLista);
-      esNuevo=true;
+      esNuevo = true;
       limpiar();
     }
   };
@@ -142,9 +155,40 @@ export default function App() {
     setProductos(nuevaLista); // guardo o actualizo con la nueva lista
   };
 
+  //VARIABLE DE ESTADO PARA EL MODAL 
+  const [modalVisible, setModalVisible] = useState(false)
+
+  //confirmacion para eliminar
+  let confirmarEliminar = () => {
+    eliminarItem(indiceSeleccionado);
+    setModalVisible(false);
+  };
 
   return (
     <View style={styles.container}>
+      <Modal                              //_______________________MODALLLL______________________________________
+        transparent={true}
+        animationType="fade"
+        visible={modalVisible}
+      >
+        <View style={styles.containerPrincipal}>
+          <View style={styles.ventanaModal}>
+            <Text style={styles.itemTextoPrecioVenta}>¿Desea eliminar este producto?</Text>
+            <View style={styles.botonModal}>
+              <Button
+                title="SI"
+                color="red"
+                onPress={confirmarEliminar}
+              />
+              <Button
+                title="NO"
+                onPress={() => setModalVisible(false)}
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       <ScrollView>
         <View style={styles.cabecera}>
 
@@ -214,19 +258,16 @@ export default function App() {
         </View>
       </ScrollView>
       <View style={styles.contenido}>
-
         <FlatList
           style={styles.lista}
           data={productos}
-          renderItem={(objeto) => {
+          renderItem={({ index, item }) => { //obtenemos directo las propiedades del objeto como variables
             return <ItemProducto
-              indice={objeto.index}
-              producto={objeto.item}
+              indice={index}
+              producto={item}
             />
           }}
-          keyExtractor={(item) => {
-            return item.id
-          }}
+          keyExtractor={item => item.id} // se minimiza el codigo se elimina el return y las llaves del paso de parametros
         />
 
       </View>
@@ -236,6 +277,7 @@ export default function App() {
       <StatusBar style="auto" />
 
     </View>
+
   );
 }
 
@@ -359,5 +401,33 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     justifyContent: 'space-around',
     alignItems: 'center'
+  },
+  /*========================================
+              modal
+  ===========================================*/
+  containerPrincipal: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.69)'
+  },
+  ventanaModal: {
+    flexDirection:'column',
+    justifyContent:'center',
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 10,
+    width: 280,     //el tamaño del modal en la pantalla
+    height:150,
+    alignItems: 'center'
+  },
+  botonModal:{
+    flex:1,
+    flexDirection:'row',
+    justifyContent:'space-between',
+    alignItems:'center',
+    //backgroundColor:'yellow',
+    width: 100,
   }
+
 });
